@@ -6,7 +6,7 @@ import scala.io.StdIn
 import io.lemonlabs.uri.Url
 
 object Main extends App {
-  val config = CrawlConfig.fromUrl("https://www.scala-lang.org", 1)
+  val config = CrawlConfig.fromUrl("https://www.scala-lang.org", 1, "example.csv")
   implicit val system = ActorSystem(CrawlingController(config), "scraper-system")
 
   StdIn.readLine()

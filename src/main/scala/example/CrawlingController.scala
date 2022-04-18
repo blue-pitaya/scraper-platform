@@ -61,7 +61,7 @@ object CrawlingController {
           .supervise(
             PageScrapper(
               DataParser.parseH1Texts,
-              (xs: List[String]) => CsvDataSaver.appendData(xs, "example.csv")
+              (xs: List[String]) => CsvDataSaver.appendData(xs, config.outputCsvFilename)
             )
           )
           .onFailure[Exception](SupervisorStrategy.resume) //TODO: log
