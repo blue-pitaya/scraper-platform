@@ -30,6 +30,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-http-testkit"        % akkaHttpVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion     % Test,
       "org.scalatest"     %% "scalatest"                % "3.1.4"         % Test,
+      "com.github.tototoshi" %% "scala-csv" % "1.3.10",
 
 //      "com.machinepublishers" % "jbrowserdriver" % "1.1.1"
     )
