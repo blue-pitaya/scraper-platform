@@ -30,6 +30,7 @@ object PageScrapper {
               Behaviors.same
             case Success(document) =>
               val links = LinkParser.parse(document)
+              val h1Texts = DataParser.parseH1Texts(document)
               replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
               Behaviors.same
           }
