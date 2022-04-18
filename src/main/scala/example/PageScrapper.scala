@@ -31,6 +31,7 @@ object PageScrapper {
             case Success(document) =>
               val links = LinkParser.parse(document)
               val h1Texts = DataParser.parseH1Texts(document)
+              h1Texts.foreach(h1 => CsvDataSaver.appendData(h1, "example.csv"))
               replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
               Behaviors.same
           }
