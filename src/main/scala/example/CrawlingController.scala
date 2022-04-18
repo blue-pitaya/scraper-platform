@@ -58,7 +58,12 @@ object CrawlingController {
     Behaviors.setup { ctx =>
       val workerPool = Routers.pool(poolSize = 4) {
         Behaviors
-          .supervise(PageScrapper())
+          .supervise(
+            PageScrapper(
+              DataParser.parseH1Texts,
+              (xs: List[String]) => CsvDataSaver.appendData(xs, "example.csv")
+            )
+          )
           .onFailure[Exception](SupervisorStrategy.resume) //TODO: log
       }
       val router = ctx.spawn(workerPool, "page-scraper-pool")
