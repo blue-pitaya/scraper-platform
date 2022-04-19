@@ -32,7 +32,9 @@ lazy val root = (project in file("."))
       "org.scalatest"     %% "scalatest"                % "3.1.4"         % Test,
       "com.github.tototoshi" %% "scala-csv" % "1.3.10",
 
-//      "com.machinepublishers" % "jbrowserdriver" % "1.1.1"
+      "org.tpolecat" %% "doobie-core"      % "1.0.0-RC1",
+      "org.tpolecat" %% "doobie-postgres"  % "1.0.0-RC1",
+      "org.typelevel" %% "cats-effect" % "3.3.11",
     )
 
   )
