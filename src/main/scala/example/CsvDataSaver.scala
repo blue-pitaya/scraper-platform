@@ -1,21 +1,27 @@
 package example
 
 import com.github.tototoshi.csv.CSVWriter
-
-trait CsvParser[A] {
-  def parse(value: A): List[List[String]]
-}
-
-object CsvParser {
-  implicit val stringSaver = new CsvParser[List[String]] {
-    override def parse(value: List[String]): List[List[String]] = List(value)
-  }
-}
+import akka.actor.typed.Behavior
+import akka.actor.typed.scaladsl.Behaviors
 
 object CsvDataSaver {
-  def appendData[A](data: A, filename: String)(implicit csvParser: CsvParser[A]): Unit = {
+  sealed trait Command
+  final case class SaveData(data: List[List[String]]) extends Command
+  final case object Stop extends Command
+
+  final case class State(writer: CSVWriter, filename: String)
+
+  def apply(filename: String): Behavior[Command] = {
     val writer = CSVWriter.open(filename, append = true)
-    writer.writeAll(csvParser.parse(data))
-    writer.close()
+    Behaviors.receive { (context, message) =>
+      message match {
+        case SaveData(data) =>
+          writer.writeAll(data)
+          Behaviors.same
+        case Stop =>
+          writer.close()
+          Behaviors.stopped
+      }
+    }
   }
 }

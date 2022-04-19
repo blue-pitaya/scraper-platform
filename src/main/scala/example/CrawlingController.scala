@@ -56,12 +56,13 @@ object CrawlingController {
 
   def apply(config: CrawlConfig): Behavior[Command] =
     Behaviors.setup { ctx =>
+      val csvDataSaver = ctx.spawn(CsvDataSaver(config.outputCsvFilename), "csv-data-saver")
       val workerPool = Routers.pool(poolSize = 4) {
         Behaviors
           .supervise(
             PageScrapper(
               DataParser.parseH1Texts,
-              (xs: List[String]) => CsvDataSaver.appendData(xs, config.outputCsvFilename)
+              csvDataSaver
             )
           )
           .onFailure[Exception](SupervisorStrategy.resume) //TODO: log

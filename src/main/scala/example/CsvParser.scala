@@ -9,4 +9,3 @@ object CsvParser {
     override def parse(value: List[String]): List[List[String]] = List(value)
   }
 }
-

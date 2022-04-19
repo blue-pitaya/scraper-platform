@@ -18,7 +18,10 @@ object PageScrapper {
       replyTo: ActorRef[CrawlingController.Command]
   ) extends Command
 
-  def apply[A](parseData: Document => A, saveData: A => Unit): Behavior[Command] = {
+  def apply(
+      parseData: Document => List[String],
+      csvDataSaver: ActorRef[CsvDataSaver.Command]
+  ): Behavior[Command] = {
     val browser = JsoupBrowser()
     Behaviors.receive { (context, message) =>
       message match {
@@ -31,7 +34,8 @@ object PageScrapper {
             case Success(document) =>
               val links = LinkParser.parse(document)
               val data = parseData(document) //TODO: possible exception
-              saveData(data) //TODO: possible exception
+              val parsedData = CsvParser.stringSaver.parse(data)
+              csvDataSaver ! CsvDataSaver.SaveData(parsedData)
               replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
               Behaviors.same
           }
