@@ -19,7 +19,8 @@ object CrawlingController {
       config: CrawlConfig,
       urlsToVisit: Queue[UrlTicket],
       visitedUrls: SortedSet[String],
-      workerPoolRouter: ActorRef[PageScrapper.Command]
+      workerPoolRouter: ActorRef[PageScrapper.Command],
+      dataSaver: ActorRef[CsvDataSaver.Command]
   )
 
   def sendingRequest(state: State, ctx: ActorContext[Command]): Behavior[Command] = {
@@ -47,7 +48,6 @@ object CrawlingController {
         val nextState = state.copy(urlsToVisit = nextUrlsToVisit)
         ctx.log.info(s"Scrapped ${ticket.url}. ${nextUrlsToVisit.size} left.")
         sendingRequest(nextState, ctx)
-
       case Abort =>
         ctx.log.info("Abort requested. Stopping.")
         Behaviors.stopped
@@ -72,7 +72,8 @@ object CrawlingController {
         config = config,
         urlsToVisit = Queue(UrlTicket(config.startUrl.toString(), 0)),
         visitedUrls = TreeSet(),
-        workerPoolRouter = router
+        workerPoolRouter = router,
+        dataSaver = csvDataSaver
       )
       sendingRequest(state, ctx)
     }

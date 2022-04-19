@@ -2,6 +2,7 @@ package example
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
+import akka.actor.typed.PostStop
 import akka.actor.typed.scaladsl.Behaviors
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
@@ -23,23 +24,24 @@ object PageScrapper {
       csvDataSaver: ActorRef[CsvDataSaver.Command]
   ): Behavior[Command] = {
     val browser = JsoupBrowser()
-    Behaviors.receive { (context, message) =>
-      message match {
-        case ScrapPage(ticket, replyTo) =>
-          val document = Try(browser.get(ticket.url))
-          document match {
-            case Failure(exception) =>
-              context.log.error(s"Error scanning ${ticket.url}. $exception")
-              Behaviors.same
-            case Success(document) =>
-              val links = LinkParser.parse(document)
-              val data = parseData(document) //TODO: possible exception
-              val parsedData = CsvParser.stringSaver.parse(data)
-              csvDataSaver ! CsvDataSaver.SaveData(parsedData)
-              replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
-              Behaviors.same
-          }
+    Behaviors
+      .receive { (context, message) =>
+        message match {
+          case ScrapPage(ticket, replyTo) =>
+            val document = Try(browser.get(ticket.url))
+            document match {
+              case Failure(exception) =>
+                context.log.error(s"Error scanning ${ticket.url}. $exception")
+                Behaviors.same
+              case Success(document) =>
+                val links = LinkParser.parse(document)
+                val data = parseData(document) //TODO: possible exception
+                val parsedData = CsvParser.stringSaver.parse(data)
+                csvDataSaver ! CsvDataSaver.SaveData(parsedData)
+                replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
+                Behaviors.same
+            }
+        }
       }
-    }
   }
 }
