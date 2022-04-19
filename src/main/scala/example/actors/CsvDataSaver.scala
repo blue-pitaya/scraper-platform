@@ -1,4 +1,4 @@
-package example
+package example.actors
 
 import com.github.tototoshi.csv.CSVWriter
 import akka.actor.typed.Behavior

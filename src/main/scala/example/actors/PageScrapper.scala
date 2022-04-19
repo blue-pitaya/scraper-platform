@@ -1,4 +1,4 @@
-package example
+package example.actors
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
@@ -11,6 +11,8 @@ import net.ruippeixotog.scalascraper.model._
 import scala.util.Try
 import scala.util.Failure
 import scala.util.Success
+import example.models._
+import example.parsers._
 
 object PageScrapper {
   sealed trait Command

@@ -1,4 +1,4 @@
-package example
+package example.parsers
 
 trait CsvParser[A] {
   def parse(value: A): List[List[String]]

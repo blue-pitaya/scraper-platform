@@ -1,4 +1,4 @@
-package example
+package example.actors
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.Behavior
@@ -9,6 +9,8 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.SupervisorStrategy
 import scala.collection.immutable.TreeSet
 import akka.actor.typed.scaladsl.ActorContext
+import example.models._
+import example.parsers._
 
 object CrawlingController {
   sealed trait Command

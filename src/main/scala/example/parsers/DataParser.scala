@@ -1,4 +1,4 @@
-package example
+package example.parsers
 
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
