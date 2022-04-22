@@ -13,6 +13,7 @@ import scala.util.Failure
 import scala.util.Success
 import example.models._
 import example.parsers._
+import example.savers._
 
 object PageScrapper {
   sealed trait Command

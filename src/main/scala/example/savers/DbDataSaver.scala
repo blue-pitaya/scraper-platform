@@ -1,4 +1,5 @@
-package example.actors
+package example.savers
+
 import doobie._
 import doobie.implicits._
 import cats._
