@@ -41,8 +41,8 @@ object PageScrapper {
                 val textValues = data.map(v => TextValue(v, ticket.url))
                 textValues.foreach(DbDataSaver.saveData(_))
 
-                //val parsedData = CsvParser.stringSaver.parse(data)
-                //csvDataSaver ! CsvDataSaver.SaveData(parsedData)
+                val parsedData = CsvParser.stringSaver.parse(data)
+                csvDataSaver ! CsvDataSaver.SaveData(parsedData)
 
                 replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
                 Behaviors.same

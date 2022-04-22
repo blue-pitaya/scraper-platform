@@ -17,15 +17,15 @@ object CrawlingController {
   final case class PageScrapped(ticket: UrlTicket, urls: Set[String]) extends Command
   final case object Abort extends Command
 
-  final case class State(
-      config: CrawlConfig,
+  final case class State[A](
+      config: ScrapConfig[A],
       urlsToVisit: Queue[UrlTicket],
       visitedUrls: SortedSet[String],
       workerPoolRouter: ActorRef[PageScrapper.Command],
       dataSaver: ActorRef[CsvDataSaver.Command]
   )
 
-  def sendingRequest(state: State, ctx: ActorContext[Command]): Behavior[Command] = {
+  def sendingRequest[A](state: State[A], ctx: ActorContext[Command]): Behavior[Command] = {
     state.urlsToVisit.dequeueOption match {
       case Some((ticket, queue)) =>
         state.workerPoolRouter ! PageScrapper.ScrapPage(ticket, ctx.self)
@@ -37,7 +37,7 @@ object CrawlingController {
     }
   }
 
-  def processing(state: State): Behavior[Command] = Behaviors.receive { (ctx, msg) =>
+  def processing[A](state: State[A]): Behavior[Command] = Behaviors.receive { (ctx, msg) =>
     msg match {
       case PageScrapped(ticket, urls) =>
         val nextVisitedUrls = state.visitedUrls.union(Set(ticket.url))
@@ -56,9 +56,9 @@ object CrawlingController {
     }
   }
 
-  def apply(config: CrawlConfig): Behavior[Command] =
+  def apply[A](config: ScrapConfig[A]): Behavior[Command] =
     Behaviors.setup { ctx =>
-      val csvDataSaver = ctx.spawn(CsvDataSaver(config.outputCsvFilename), "csv-data-saver")
+      val csvDataSaver = ctx.spawn(CsvDataSaver("example.csv"), "csv-data-saver")
       val workerPool = Routers.pool(poolSize = 4) {
         Behaviors
           .supervise(
