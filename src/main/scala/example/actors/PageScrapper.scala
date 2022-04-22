@@ -38,8 +38,12 @@ object PageScrapper {
               case Success(document) =>
                 val links = LinkParser.parse(document)
                 val data = parseData(document) //TODO: possible exception
-                val parsedData = CsvParser.stringSaver.parse(data)
-                csvDataSaver ! CsvDataSaver.SaveData(parsedData)
+                val textValues = data.map(v => TextValue(v, ticket.url))
+                textValues.foreach(DbDataSaver.saveData(_))
+
+                //val parsedData = CsvParser.stringSaver.parse(data)
+                //csvDataSaver ! CsvDataSaver.SaveData(parsedData)
+
                 replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
                 Behaviors.same
             }
