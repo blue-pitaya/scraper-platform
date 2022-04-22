@@ -61,7 +61,7 @@ object CrawlingController {
     Behaviors.setup { ctx =>
       val dataSaver = config.dataSaver match {
         case CsvSaverConfig(filename, dataToValueList) =>
-          val csvDataSaver = ctx.spawn(CsvDataSaver("example.csv"), "csv-data-saver")
+          val csvDataSaver = ctx.spawn(CsvDataSaver(filename), "csv-data-saver")
           val saver: A => Unit = value => {
             val parsedData = CsvParser.stringSaver.parse(dataToValueList(value))
             csvDataSaver ! CsvDataSaver.SaveData(parsedData)
