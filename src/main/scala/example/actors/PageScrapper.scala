@@ -22,9 +22,9 @@ object PageScrapper {
       replyTo: ActorRef[CrawlingController.Command]
   ) extends Command
 
-  def apply(
-      parseData: Document => List[String],
-      csvDataSaver: ActorRef[CsvDataSaver.Command]
+  def apply[A](
+      parseData: (UrlTicket, Document) => Option[A],
+      saveData: A => Unit
   ): Behavior[Command] = {
     val browser = JsoupBrowser()
     Behaviors
@@ -38,12 +38,16 @@ object PageScrapper {
                 Behaviors.same
               case Success(document) =>
                 val links = LinkParser.parse(document)
-                val data = parseData(document) //TODO: possible exception
-                val textValues = data.map(v => TextValue(v, ticket.url))
-                textValues.foreach(DbDataSaver.saveData(_))
+                val data = parseData(ticket, document)
+                data match {
+                  case Some(value) => saveData(value)
+                  case None        =>
+                }
+                //val textValues = data.map(v => TextValue(v, ticket.url))
+                //textValues.foreach(DbDataSaver.saveData(_))
 
-                val parsedData = CsvParser.stringSaver.parse(data)
-                csvDataSaver ! CsvDataSaver.SaveData(parsedData)
+                //val parsedData = CsvParser.stringSaver.parse(data)
+                //csvDataSaver ! CsvDataSaver.SaveData(parsedData)
 
                 replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
                 Behaviors.same

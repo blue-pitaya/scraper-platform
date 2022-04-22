@@ -11,6 +11,8 @@ import scala.collection.immutable.TreeSet
 import akka.actor.typed.scaladsl.ActorContext
 import example.models._
 import example.parsers._
+import example.savers.CsvSaverConfig
+import example.savers.DbSaverConfig
 
 object CrawlingController {
   sealed trait Command
@@ -21,8 +23,7 @@ object CrawlingController {
       config: ScrapConfig[A],
       urlsToVisit: Queue[UrlTicket],
       visitedUrls: SortedSet[String],
-      workerPoolRouter: ActorRef[PageScrapper.Command],
-      dataSaver: ActorRef[CsvDataSaver.Command]
+      workerPoolRouter: ActorRef[PageScrapper.Command]
   )
 
   def sendingRequest[A](state: State[A], ctx: ActorContext[Command]): Behavior[Command] = {
@@ -58,13 +59,25 @@ object CrawlingController {
 
   def apply[A](config: ScrapConfig[A]): Behavior[Command] =
     Behaviors.setup { ctx =>
-      val csvDataSaver = ctx.spawn(CsvDataSaver("example.csv"), "csv-data-saver")
+      val dataSaver = config.dataSaver match {
+        case CsvSaverConfig(filename, dataToValueList) =>
+          val csvDataSaver = ctx.spawn(CsvDataSaver("example.csv"), "csv-data-saver")
+          val saver: A => Unit = value => {
+            val parsedData = CsvParser.stringSaver.parse(dataToValueList(value))
+            csvDataSaver ! CsvDataSaver.SaveData(parsedData)
+          }
+          saver
+        case DbSaverConfig(transactor, columnNames) =>
+          val saver: A => Unit = v => {}
+          saver
+      }
+
       val workerPool = Routers.pool(poolSize = 4) {
         Behaviors
           .supervise(
             PageScrapper(
-              DataParser.parseH1Texts,
-              csvDataSaver
+              config.documentParser,
+              dataSaver
             )
           )
           .onFailure[Exception](SupervisorStrategy.resume) //TODO: log
@@ -74,8 +87,7 @@ object CrawlingController {
         config = config,
         urlsToVisit = Queue(UrlTicket(config.startUrl.toString(), 0)),
         visitedUrls = TreeSet(),
-        workerPoolRouter = router,
-        dataSaver = csvDataSaver
+        workerPoolRouter = router
       )
       sendingRequest(state, ctx)
     }
