@@ -23,13 +23,17 @@ object CrawlingController {
       config: ScrapConfig[A],
       urlsToVisit: Queue[UrlTicket],
       visitedUrls: SortedSet[String],
-      workerPoolRouter: ActorRef[PageScrapper.Command]
+      workerPoolRouter: ActorRef[StreamedPageScraper.Command]
   )
 
   def sendingRequest[A](state: State[A], ctx: ActorContext[Command]): Behavior[Command] = {
     state.urlsToVisit.dequeueOption match {
       case Some((ticket, queue)) =>
-        state.workerPoolRouter ! PageScrapper.ScrapPage(ticket, ctx.self)
+        state.workerPoolRouter ! StreamedPageScraper.ScrapPage(
+          ticket,
+          ctx.self
+        ) //send ticket to scrap
+        //val g = ScraperGraph.graph(ticket, state.config.documentParser, ctx.self)
         val nextState = state.copy(urlsToVisit = queue)
         processing(nextState)
       case None =>
@@ -75,7 +79,7 @@ object CrawlingController {
       val workerPool = Routers.pool(poolSize = 4) {
         Behaviors
           .supervise(
-            PageScrapper(
+            StreamedPageScraper(
               config.documentParser,
               dataSaver
             )
