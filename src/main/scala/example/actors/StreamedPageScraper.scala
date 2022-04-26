@@ -26,7 +26,7 @@ object StreamedPageScraper {
         message match {
           case ScrapPage(ticket, replyTo) =>
             implicit val system = context.system
-            ScraperGraph.graph(ticket, parseData, replyTo).run()
+            //ScraperGraph.graph(ticket, parseData, replyTo).run()
             Behaviors.same
         }
       }

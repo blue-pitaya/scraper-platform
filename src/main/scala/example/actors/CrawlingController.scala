@@ -13,6 +13,8 @@ import example.models._
 import example.parsers._
 import example.savers.CsvSaverConfig
 import example.savers.DbSaverConfig
+import net.ruippeixotog.scalascraper.browser.JsoupBrowser
+import akka.stream.scaladsl.Sink
 
 object CrawlingController {
   sealed trait Command
@@ -23,15 +25,14 @@ object CrawlingController {
       config: ScrapConfig[A],
       urlsToVisit: Queue[UrlTicket],
       visitedUrls: SortedSet[String],
-      workerPoolRouter: ActorRef[StreamedPageScraper.Command]
+      workerPoolRouter: ActorRef[TicketSource.Command]
   )
 
   def sendingRequest[A](state: State[A], ctx: ActorContext[Command]): Behavior[Command] = {
     state.urlsToVisit.dequeueOption match {
       case Some((ticket, queue)) =>
-        state.workerPoolRouter ! StreamedPageScraper.ScrapPage(
-          ticket,
-          ctx.self
+        state.workerPoolRouter ! TicketSource.Execute(
+          ticket
         ) //send ticket to scrap
         //val g = ScraperGraph.graph(ticket, state.config.documentParser, ctx.self)
         val nextState = state.copy(urlsToVisit = queue)
@@ -86,12 +87,23 @@ object CrawlingController {
           )
           .onFailure[Exception](SupervisorStrategy.resume) //TODO: log
       }
-      val router = ctx.spawn(workerPool, "page-scraper-pool")
+
+      implicit val browser = JsoupBrowser()
+      implicit val system = ctx.system
+      val scrapSink = ScraperGraph.graph(config.documentParser, ctx.self)
+      val ticketActor = TicketSource()
+        .collect { case TicketSource.Execute(ticket) =>
+          ticket
+        }
+        .to(scrapSink)
+        .run()
+
+      //val router = ctx.spawn(workerPool, "page-scraper-pool")
       val state = State(
         config = config,
         urlsToVisit = Queue(UrlTicket(config.startUrl.toString(), 0)),
         visitedUrls = TreeSet(),
-        workerPoolRouter = router
+        workerPoolRouter = ticketActor
       )
       sendingRequest(state, ctx)
     }
