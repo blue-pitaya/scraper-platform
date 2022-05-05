@@ -12,8 +12,33 @@ import net.ruippeixotog.scalascraper.model.Document
 import akka.actor.typed.ActorRef
 import example.actors.TicketSource.Execute
 import akka.stream.SinkShape
+import akka.NotUsed
+import akka.stream.UniformFanOutShape
+import akka.stream.FanOutShape2
 
 object ScraperGraph {
+  def simpleGraph(parseDataFlow: Flow[Document, Option[Int], NotUsed])(implicit browser: Browser) =
+    GraphDSL.create() { implicit b =>
+      import GraphDSL.Implicits._
+
+      val download = b.add(Flow.fromFunction((t: UrlTicket) => {
+        println(s"Started download ${t.url}")
+        browser.get(t.url)
+      })) //TODO: exception
+      val bcast = b.add(Broadcast[Document](2))
+      val parseLinks = b.add(Flow.fromFunction((d: Document) => LinkParser.parse(d)))
+      val parseData = b.add(parseDataFlow)
+
+      download ~> bcast ~> parseLinks
+      bcast ~> parseData
+
+      new FanOutShape2[UrlTicket, List[String], Option[Int]](
+        download.in,
+        parseLinks.out,
+        parseData.out
+      )
+    } //TODO:
+
   def graph[A](
       mParseData: (UrlTicket, Document) => Option[A],
       replyTo: ActorRef[CrawlingController.Command]
@@ -28,17 +53,22 @@ object ScraperGraph {
       val zip2 = b.add(Zip[List[String], UrlTicket]())
       val bcast2 = b.add(Broadcast[Document](2))
 
-      val download = Flow.fromFunction((t: UrlTicket) => 
+      val download = Flow.fromFunction((t: UrlTicket) => {
+        println(s"Started download ${t.url}")
         browser.get(t.url)
-      ) //TODO: exception
+      }) //TODO: exception
       val parseLinks = Flow.fromFunction((d: Document) => LinkParser.parse(d))
-      val parseData = Flow.fromFunction((t: (Document, UrlTicket)) => mParseData(t._2, t._1))
+      val parseData = Flow.fromFunction((t: (Document, UrlTicket)) => {
+        println(t._1.location)
+        mParseData(t._2, t._1)
+      })
 
       val dataSink = Sink.foreach((x: Option[A]) => println(x.toString()))
       val linkSink =
-        Sink.foreach((t: (List[String], UrlTicket)) =>
+        Sink.foreach((t: (List[String], UrlTicket)) => {
+          println(s"Reached linkSink for ${t._2.url}")
           replyTo ! CrawlingController.PageScrapped(t._2, t._1.toSet)
-        )
+        })
 
       bcast1 ~> download ~> bcast2 ~> zip1.in0
       bcast1 ~> zip1.in1
