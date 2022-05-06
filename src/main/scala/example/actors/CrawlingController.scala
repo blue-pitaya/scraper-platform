@@ -25,16 +25,13 @@ object CrawlingController {
       config: ScrapConfig[A],
       urlsToVisit: Queue[UrlTicket],
       visitedUrls: SortedSet[String],
-      workerPoolRouter: ActorRef[TicketSource.Command]
+      workerPoolRouter: ActorRef[PageScrapper.Command]
   )
 
   def sendingRequest[A](state: State[A], ctx: ActorContext[Command]): Behavior[Command] = {
     state.urlsToVisit.dequeueOption match {
       case Some((ticket, queue)) =>
-        state.workerPoolRouter ! TicketSource.Execute(
-          ticket
-        ) //send ticket to scrap
-        //val g = ScraperGraph.graph(ticket, state.config.documentParser, ctx.self)
+        state.workerPoolRouter ! PageScrapper.ScrapPage(ticket, ctx.self)
         val nextState = state.copy(urlsToVisit = queue)
         processing(nextState)
       case None =>
@@ -80,7 +77,7 @@ object CrawlingController {
       val workerPool = Routers.pool(poolSize = 4) {
         Behaviors
           .supervise(
-            StreamedPageScraper(
+            PageScrapper(
               config.documentParser,
               dataSaver
             )
@@ -88,22 +85,12 @@ object CrawlingController {
           .onFailure[Exception](SupervisorStrategy.resume) //TODO: log
       }
 
-      implicit val browser = JsoupBrowser()
-      implicit val system = ctx.system
-      val scrapSink = ScraperGraph.graph(config.documentParser, ctx.self)
-      val ticketActor = TicketSource()
-        .collect { case TicketSource.Execute(ticket) =>
-          ticket
-        }
-        .to(scrapSink)
-        .run()
-
-      //val router = ctx.spawn(workerPool, "page-scraper-pool")
+      val router = ctx.spawn(workerPool, "page-scraper-pool")
       val state = State(
         config = config,
         urlsToVisit = Queue(UrlTicket(config.startUrl.toString(), 0)),
         visitedUrls = TreeSet(),
-        workerPoolRouter = ticketActor
+        workerPoolRouter = router
       )
       sendingRequest(state, ctx)
     }

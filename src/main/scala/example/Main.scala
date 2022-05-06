@@ -14,21 +14,12 @@ import cats.effect.IO
 
 object Main extends App {
   val url = "https://www.scala-lang.org"
-  val postgresConfig = DbSaverConfig[HeaderInfo](
-    transactor = transactor.Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver", // driver classname
-      "jdbc:postgresql://192.168.0.10:5432/scraperdata", // connect URL (driver-specific)
-      "scraper", // user
-      "asdf" // password
-    ),
-    columnNames = List("value", "site")
-  )
   val config = ScrapConfig[HeaderInfo](
     startUrl = Url.parse(url),
     maxDepth = 1,
     linkFilter = UrlUtils.isUrlMatchingBase(url),
     documentParser = DataParser.parseH1Text,
-    dataSaver = postgresConfig
+    dataSaver = CsvSaverConfig[HeaderInfo]("example.csv", h => List(h.url, h.value))
   )
   implicit val system = ActorSystem(CrawlingController(config), "scraper-system")
 
