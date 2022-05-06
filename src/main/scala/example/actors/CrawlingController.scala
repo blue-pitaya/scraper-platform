@@ -3,11 +3,9 @@ package example.actors
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Routers
-import scala.collection.immutable.Queue
-import scala.collection.SortedSet
+import scala.collection.immutable._
 import akka.actor.typed.ActorRef
 import akka.actor.typed.SupervisorStrategy
-import scala.collection.immutable.TreeSet
 import akka.actor.typed.scaladsl.ActorContext
 import example.models._
 import example.parsers._
@@ -88,7 +86,7 @@ object CrawlingController {
       val router = ctx.spawn(workerPool, "page-scraper-pool")
       val state = State(
         config = config,
-        urlsToVisit = Queue(UrlTicket(config.startUrl.toString(), 0)),
+        urlsToVisit = config.startUrls.map(url => UrlTicket(url.toString(), 0)).to(Queue),
         visitedUrls = TreeSet(),
         workerPoolRouter = router
       )

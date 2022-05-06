@@ -13,11 +13,13 @@ import doobie.util.transactor
 import cats.effect.IO
 
 object Main extends App {
-  val url = "https://www.scala-lang.org"
+  val url1 = "https://www.scala-lang.org"
+  val url2 = "https://typelevel.org/cats/"
+
   val config = ScrapConfig[HeaderInfo](
-    startUrl = Url.parse(url),
+    startUrls = Set(Url.parse(url1), Url.parse(url2)),
     maxDepth = 1,
-    linkFilter = UrlUtils.isUrlMatchingBase(url),
+    linkFilter = UrlUtils.isUrlMatchingBase(url1),
     documentParser = DataParser.parseH1Text,
     dataSaver = CsvSaverConfig[HeaderInfo]("example.csv", h => List(h.url, h.value))
   )

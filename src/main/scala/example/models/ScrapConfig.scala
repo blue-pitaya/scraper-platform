@@ -5,7 +5,7 @@ import net.ruippeixotog.scalascraper.model.Document
 import example.savers.DataSaverConfig
 
 final case class ScrapConfig[A](
-    startUrl: Url,
+    startUrls: Set[Url],
     maxDepth: Int,
     linkFilter: String => Boolean,
     documentParser: (UrlTicket, Document) => Option[A],
