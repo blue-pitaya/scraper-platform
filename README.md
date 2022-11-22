@@ -1,0 +1,1 @@
+This project goal was to scrape information about hotels for studies project and I was experimenting with solutions for this task. This code is probably garbage, but maybe some day i will rewrite it to more general and usable scraper.

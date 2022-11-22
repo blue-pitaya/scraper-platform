@@ -35,6 +35,7 @@ object PageScrapper {
             document match {
               case Failure(exception) =>
                 context.log.error(s"Error scanning ${ticket.url}. $exception")
+                replyTo ! CrawlingController.PageScrapped(ticket, Set())
                 Behaviors.same
               case Success(document) =>
                 val links = LinkParser.parse(document)
@@ -43,12 +44,6 @@ object PageScrapper {
                   case Some(value) => saveData(value)
                   case None        =>
                 }
-                //val textValues = data.map(v => TextValue(v, ticket.url))
-                //textValues.foreach(DbDataSaver.saveData(_))
-
-                //val parsedData = CsvParser.stringSaver.parse(data)
-                //csvDataSaver ! CsvDataSaver.SaveData(parsedData)
-
                 replyTo ! CrawlingController.PageScrapped(ticket, links.toSet)
                 Behaviors.same
             }

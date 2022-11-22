@@ -3,9 +3,9 @@ package example.actors
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Routers
-import scala.collection.immutable._
 import akka.actor.typed.ActorRef
 import akka.actor.typed.SupervisorStrategy
+import scala.collection.immutable._
 import akka.actor.typed.scaladsl.ActorContext
 import example.models._
 import example.parsers._
@@ -13,6 +13,10 @@ import example.savers.CsvSaverConfig
 import example.savers.DbSaverConfig
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import akka.stream.scaladsl.Sink
+import akka.stream.Supervision
+import akka.stream.ActorAttributes
+import io.lemonlabs.uri.Url
+import io.lemonlabs.uri.redact.Redact
 
 object CrawlingController {
   sealed trait Command
@@ -44,7 +48,9 @@ object CrawlingController {
         val nextVisitedUrls = state.visitedUrls.union(Set(ticket.url))
         val nextUrlsToVisit =
           if (ticket.depth < state.config.maxDepth) {
-            val legalUrls = urls.filter(state.config.linkFilter)
+            val legalUrls = urls
+              .filter(state.config.linkFilter)
+              .map(x => Url.parse(x).toRedactedString(Redact.byRemoving.allParams()))
             state.urlsToVisit ++ (legalUrls -- nextVisitedUrls).map(UrlTicket(_, ticket.depth + 1))
           } else
             state.urlsToVisit
@@ -59,7 +65,7 @@ object CrawlingController {
 
   def apply[A](config: ScrapConfig[A]): Behavior[Command] =
     Behaviors.setup { ctx =>
-      val dataSaver = config.dataSaver match {
+      val dataSaver: A => Unit = config.dataSaver match {
         case CsvSaverConfig(filename, dataToValueList) =>
           val csvDataSaver = ctx.spawn(CsvDataSaver(filename), "csv-data-saver")
           val saver: A => Unit = value => {
@@ -82,8 +88,8 @@ object CrawlingController {
           )
           .onFailure[Exception](SupervisorStrategy.resume) //TODO: log
       }
-
       val router = ctx.spawn(workerPool, "page-scraper-pool")
+
       val state = State(
         config = config,
         urlsToVisit = config.startUrls.map(url => UrlTicket(url.toString(), 0)).to(Queue),
